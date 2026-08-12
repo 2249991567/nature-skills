@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nature Paper Checker</title>
+    <script src="https://unpkg.com/vue@3.3.4/dist/vue.global.prod.js"></script>
+    <script src="https://unpkg.com/axios@1.5.0/dist/axios.min.js"></script>
+    <script src="https://unpkg.com/marked@9.0.0/marked.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div id="app">
+        <div class="container">
+            <div class="header">
+                <h1>Nature Paper Checker</h1>
+                <p>Academic paper checking and polishing tool based on Nature journal standards</p>
+            </div>
+
+            <div v-if="error" class="alert alert-error">{{ error }}</div>
+
+            <div v-if="!results && !processing" class="upload-card">
+                <div class="upload-area" :class="{ dragover: isDragging }" @click="triggerFileInput"
+                    @dragover.prevent="isDragging = true" @dragleave.prevent="isDragging = false"
+                    @drop.prevent="handleDrop">
+                    <div class="upload-icon">📄</div>
+                    <p><strong>Click to upload</strong> or drag and drop</p>
+                    <p style="font-size: 0.9rem; color: #a0aec0;">Supported: .md, .docx, .txt (max 10MB)</p>
+                </div>
+                <input type="file" ref="fileInput" accept=".md,.docx,.txt" @change="handleFileSelect">
+                
+                <div v-if="selectedFile" class="file-info">
+                    <div>
+                        <span>📎 {{ selectedFile.name }}</span>
+                        <span style="color: #718096; margin-left: 10px;">({{ formatFileSize(selectedFile.size) }})</span>
+                    </div>
+                    <button class="btn btn-primary" @click="uploadFile" :disabled="uploading">
+                        {{ uploading ? 'Processing...' : 'Check Paper' }}
+                    </button>
+                </div>
+            </div>
+
+            <div v-if="processing" class="upload-card loading">
+                <div class="spinner"></div>
+                <p style="font-size: 1.1rem; color: #718096;">Processing your paper... This may take a moment.</p>
+            </div>
+
+            <div v-if="results" class="results-card">
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value">{{ results.stats.total_issues }}</span>
+                        <span class="stat-label">Issues Flagged</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">{{ results.stats.mean_words_per_sentence }}</span>
+                        <span class="stat-label">Avg Words/Sentence</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">{{ results.stats.sentences_over_30 }}</span>
+                        <span class="stat-label">Sentences Over 30 Words</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">{{ results.stats.max_sentence_length }}</span>
+                        <span class="stat-label">Max Sentence Length</span>
+                    </div>
+                </div>
+
+                <div class="tabs">
+                    <div class="tab" :class="{ active: activeTab === 'polished' }" @click="activeTab = 'polished'">
+                        ✨ Polished Full Text
+                    </div>
+                    <div class="tab" :class="{ active: activeTab === 'revision' }" @click="activeTab = 'revision'">
+                        📝 Revision Notes
+                    </div>
+                    <div class="tab" :class="{ active: activeTab === 'compliance' }" @click="activeTab = 'compliance'">
+                        📊 Compliance Report
+                    </div>
+                </div>
+
+                <div class="tab-content">
+                    <div v-show="activeTab === 'polished'" class="markdown-content"
+                        v-html="renderMarkdown(results.results.polished)"></div>
+                    <div v-show="activeTab === 'revision'" class="markdown-content"
+                        v-html="renderMarkdown(results.results.revision_notes)"></div>
+                    <div v-show="activeTab === 'compliance'" class="markdown-content"
+                        v-html="renderMarkdown(results.results.compliance_report)"></div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-secondary" @click="reset">← Check Another Paper</button>
+                    <button class="btn btn-primary" @click="downloadResults">💾 Download All Results</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/app.js"></script>
+</body>
+</html>
